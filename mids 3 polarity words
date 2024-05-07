@@ -1,0 +1,55 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.naive_bayes import MultinomialNB
+
+#naive bayes
+#which describes the probability of a hypothesis given the evidence. In the context of classification, the hypothesis represents the class label, and the evidence represents the features (attributes) of the input data.
+
+from sklearn.metrics import accuracy_score
+
+# Sample dataset with labeled documents (positive or negative)
+data = pd.read_csv('/content/sample_data/companyfeedback.csv')
+
+# List of polarity words
+positive_words = ["good", "happy", "excellent", "awesome", "amazing"]
+negative_words = ["bad", "sad", "terrible", "awful", "disappointing"]
+
+# Function to calculate polarity score based on positive and negative words
+def calculate_polarity_score(document):
+    pos_count = sum(1 for word in document.split() if word in positive_words)
+    neg_count = sum(1 for word in document.split() if word in negative_words)
+    polarity_score = (pos_count - neg_count) / len(document.split())
+    return polarity_score
+
+# Apply polarity score calculation to each comment
+data['polarity_score'] = data['Comments'].apply(calculate_polarity_score)
+
+# Classify polarity based on polarity score
+data['predicted_polarity'] = data['polarity_score'].apply(lambda x: 'positive' if x > 0 else ('negative' if x < 0 else 'neutral'))
+
+# Calculate polarity report
+polarity_report = data['predicted_polarity'].value_counts(normalize=True)
+
+# Print polarity report
+print("Polarity Report:")
+print(polarity_report)
+
+# Split data for training and testing
+X_train, X_test, y_train, y_test = train_test_split(data['Comments'], data['Category'], test_size=0.2, random_state=42)
+
+# Create a CountVectorizer to convert text data to numerical features
+vectorizer = CountVectorizer()
+X_train_counts = vectorizer.fit_transform(X_train)
+X_test_counts = vectorizer.transform(X_test)
+
+# Instantiate and train the Multinomial Naive Bayes classifier
+classifier = MultinomialNB()
+classifier.fit(X_train_counts, y_train)
+
+# Predict document sentiment
+y_pred = classifier.predict(X_test_counts)
+
+# Calculate accuracy
+accuracy = accuracy_score(y_test, y_pred)
+print("Accuracy:", accuracy)
